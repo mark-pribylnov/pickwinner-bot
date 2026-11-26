@@ -1,6 +1,6 @@
 import { randomInt } from "node:crypto";
 import type { Server } from "node:http";
-import { readConfig } from "./config.js";
+import { maintenanceFrom, readConfig } from "./config.js";
 import { closePool, createPool, migrate } from "./db.js";
 import { loadEnvFile } from "./env.js";
 import { createBot, startBot, startWebhook } from "./telegram.js";
@@ -27,6 +27,8 @@ const bot = createBot(config.botToken, {
   pool,
   now: () => new Date(),
   randomIndex: (length) => randomInt(0, length),
+  scriptIndex: (length) => randomInt(0, length),
+  maintenance: maintenanceFrom(process.env),
 });
 
 let stopping = false;

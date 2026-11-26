@@ -10,6 +10,10 @@ export type AppConfig = {
   webhook: WebhookConfig | null;
 };
 
+export function maintenanceFrom(env: NodeJS.ProcessEnv): boolean {
+  return env.MAINTENANCE === "1";
+}
+
 const secretPattern = /^[A-Za-z0-9_-]{1,256}$/;
 
 export function readConfig(env: NodeJS.ProcessEnv): AppConfig {

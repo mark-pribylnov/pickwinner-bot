@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readConfig } from "../src/config.js";
+import { maintenanceFrom, readConfig } from "../src/config.js";
 
 test("readConfig requires the token and the database url", () => {
   assert.throws(() => readConfig({}), /BOT_TOKEN is required/);
@@ -51,4 +51,10 @@ test("readConfig rejects a webhook url or secret Telegram will refuse", () => {
   );
   assert.throws(() => readConfig({ ...base, WEBHOOK_SECRET: "has space" }), /WEBHOOK_SECRET/);
   assert.throws(() => readConfig({ ...base, PORT: "nope" }), /PORT must be a number/);
+});
+
+test("maintenance is on only for the exact flag", () => {
+  assert.equal(maintenanceFrom({ MAINTENANCE: "1" }), true);
+  assert.equal(maintenanceFrom({ MAINTENANCE: "true" }), false);
+  assert.equal(maintenanceFrom({}), false);
 });

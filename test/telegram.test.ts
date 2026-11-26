@@ -26,12 +26,13 @@ test("telegram ids stay exact safe integers", () => {
   assert.equal(telegramId("nope"), null);
 });
 
-test("the command menu does not reveal the reset time", () => {
-  assert.deepEqual(
-    commandMenu.map((command) => command.command),
-    ["register", "play", "stats"],
-  );
-  for (const command of commandMenu) {
-    assert.doesNotMatch(command.description, /UTC|00:00|hour/i);
-  }
+test("the command menu is the six russian commands", () => {
+  assert.deepEqual(commandMenu, [
+    { command: "pidor", description: "Запустить розыгрыш" },
+    { command: "pidoreg", description: "Зарегистрироваться" },
+    { command: "pidorstats", description: "Топ за текущий год" },
+    { command: "pidorall", description: "Топ за всё время" },
+    { command: "pidorme", description: "Личная статистика" },
+    { command: "pidorules", description: "Правила игры" },
+  ]);
 });

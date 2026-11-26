@@ -1,25 +1,26 @@
 import type { Pool } from "pg";
-import { copy, foolAnnouncement } from "./copy.js";
-import { gameYear, utcDate } from "./dates.js";
+import { resultLine, ru } from "./copy.js";
+import { gameDate, gameYear } from "./dates.js";
 import {
   countPicksByUser,
   getPick,
   listPlayers,
+  type PlayerRow,
   registerPlayer,
   setRegistered,
   tryRecordPick,
   updateProfile,
 } from "./db.js";
 import { reconcileRegistered, type MemberView } from "./members.js";
-import { displayName, plainName } from "./names.js";
+import { plainName } from "./names.js";
 import { decidePlay } from "./play.js";
 import { textReply, type Reply } from "./reply.js";
+import { buildSkit, scripts } from "./scripts.js";
 import {
   allTimeHeader,
   allTimeTotal,
   emptyBoard,
   formatBoard,
-  formatStats,
   meLine,
   yearHeader,
   yearTotal,
@@ -32,9 +33,9 @@ export type Actor = {
   firstName: string;
 };
 
-export async function register(pool: Pool, actor: Actor): Promise<string> {
+export async function register(pool: Pool, actor: Actor): Promise<Reply> {
   const result = await registerPlayer(pool, actor);
-  return result === "already" ? copy.alreadyRegistered : copy.registered;
+  return textReply(result === "already" ? ru.alreadyRegistered : ru.registered);
 }
 
 export async function play(
@@ -43,9 +44,10 @@ export async function play(
   opts: {
     now: Date;
     randomIndex: (length: number) => number;
+    scriptIndex: (length: number) => number;
     lookup: (userId: string) => Promise<MemberView>;
   },
-): Promise<string> {
+): Promise<Reply> {
   await updateProfile(pool, actor);
   await reconcileRegistered(pool, actor.chatId, opts.lookup);
   const players = await listPlayers(pool, actor.chatId);
@@ -53,7 +55,8 @@ export async function play(
   const registered = players
     .filter((player) => player.registered)
     .sort((left, right) => left.userId.localeCompare(right.userId));
-  const existing = await getPick(pool, actor.chatId, utcDate(opts.now));
+  const date = gameDate(opts.now);
+  const existing = await getPick(pool, actor.chatId, date);
   const decision = decidePlay({
     senderRegistered: sender?.registered === true,
     registeredUserIds: registered.map((player) => player.userId),
@@ -61,20 +64,23 @@ export async function play(
     randomIndex: opts.randomIndex,
   });
   if (!decision.ok) {
-    if (decision.reason === "not_registered") return copy.registerBeforePlay;
-    if (decision.reason === "need_another_player") return copy.needAnotherPlayer;
-    return copy.alreadyPicked;
+    if (decision.reason === "not_registered") return textReply(ru.registerBeforePlay);
+    if (decision.reason === "need_another_player") return textReply(ru.needAnotherPlayer);
+    return textReply(resultLine(winnerName(players, existing?.userId ?? "")));
   }
   const chosen = registered.find((player) => player.userId === decision.userId);
   if (!chosen) throw new Error("draw selected a player who is not registered");
-  const recorded = await tryRecordPick(pool, actor.chatId, utcDate(opts.now), chosen.userId);
-  if (recorded === "conflict") return copy.alreadyPicked;
-  return foolAnnouncement(displayName(chosen));
+  const recorded = await tryRecordPick(pool, actor.chatId, date, chosen.userId);
+  if (recorded === "conflict") {
+    const winner = await getPick(pool, actor.chatId, date);
+    return textReply(resultLine(winnerName(players, winner?.userId ?? chosen.userId)));
+  }
+  return buildSkit(opts.scriptIndex(scripts.length), chosen);
 }
 
-export async function stats(pool: Pool, actor: Actor): Promise<string> {
-  await updateProfile(pool, actor);
-  return formatStats(await listPlayers(pool, actor.chatId));
+function winnerName(players: readonly PlayerRow[], userId: string): string {
+  const player = players.find((row) => row.userId === userId);
+  return player ? plainName(player) : userId;
 }
 
 export async function yearStats(pool: Pool, actor: Actor, now: Date): Promise<Reply> {

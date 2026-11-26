@@ -2,14 +2,28 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { Bot, webhookCallback, type Api, type Context } from "grammy";
 import type { Pool } from "pg";
 import { migrateChat } from "./db.js";
-import { memberJoined, memberLeft, play, register, stats, type Actor } from "./game.js";
+import { deliver } from "./deliver.js";
+import {
+  allTimeStats,
+  meStats,
+  memberJoined,
+  memberLeft,
+  play,
+  register,
+  yearStats,
+  type Actor,
+} from "./game.js";
 import type { MemberView } from "./members.js";
-import { route } from "./route.js";
+import type { Reply } from "./reply.js";
+import { dispatch, type RouteEvent } from "./route.js";
 
 export const commandMenu = [
-  { command: "register", description: "join the game" },
-  { command: "play", description: "pick the fool" },
-  { command: "stats", description: "show scores" },
+  { command: "pidor", description: "Запустить розыгрыш" },
+  { command: "pidoreg", description: "Зарегистрироваться" },
+  { command: "pidorstats", description: "Топ за текущий год" },
+  { command: "pidorall", description: "Топ за всё время" },
+  { command: "pidorme", description: "Личная статистика" },
+  { command: "pidorules", description: "Правила игры" },
 ] as const;
 
 const inGroup = new Set(["creator", "administrator", "member", "restricted"]);
@@ -37,25 +51,29 @@ export function telegramId(id: string): number | null {
 export type BotDeps = {
   pool: Pool;
   randomIndex: (length: number) => number;
+  scriptIndex: (length: number) => number;
   now: () => Date;
+  maintenance: boolean;
 };
 
 export function createBot(token: string, deps: BotDeps): Bot {
   const bot = new Bot(token);
   const depsFor = (chatId: string) => routeDeps(deps, bot.api, chatId);
+  const handle = (event: RouteEvent, chatId: string) =>
+    dispatch({ maintenance: deps.maintenance, event }, depsFor(chatId));
 
-  for (const command of ["start", "help", "register", "play", "stats"] as const) {
+  for (const command of ["start", "help", "pidoreg", "pidor", "pidorstats", "pidorall", "pidorme", "pidorules"] as const) {
     bot.command(command, async (ctx) => {
       await reply(ctx, async () => {
         if (!ctx.chat || !ctx.from) return null;
-        return route(
+        return handle(
           {
             kind: "command",
             command,
             chatType: ctx.chat.type,
             actor: actorFrom(ctx.chat.id, ctx.from),
           },
-          depsFor(String(ctx.chat.id)),
+          String(ctx.chat.id),
         );
       });
     });
@@ -65,14 +83,14 @@ export function createBot(token: string, deps: BotDeps): Bot {
     await reply(ctx, async () => {
       const user = ctx.message?.left_chat_member;
       if (!ctx.chat || !user) return null;
-      return route(
+      return handle(
         {
           kind: "left",
           chatType: ctx.chat.type,
           chatId: String(ctx.chat.id),
           userId: String(user.id),
         },
-        depsFor(String(ctx.chat.id)),
+        String(ctx.chat.id),
       );
     });
   });
@@ -81,9 +99,9 @@ export function createBot(token: string, deps: BotDeps): Bot {
     await reply(ctx, async () => {
       if (!ctx.chat) return null;
       for (const user of ctx.message?.new_chat_members ?? []) {
-        await route(
+        await handle(
           { kind: "joined", chatType: ctx.chat.type, actor: actorFrom(ctx.chat.id, user) },
-          depsFor(String(ctx.chat.id)),
+          String(ctx.chat.id),
         );
       }
       return null;
@@ -175,9 +193,12 @@ function routeDeps(deps: BotDeps, api: Api, chatId: string) {
       play(deps.pool, actor, {
         now: deps.now(),
         randomIndex: deps.randomIndex,
+        scriptIndex: deps.scriptIndex,
         lookup: (userId) => lookupMember(api, chatId, userId),
       }),
-    stats: (actor: Actor) => stats(deps.pool, actor),
+    yearStats: (actor: Actor) => yearStats(deps.pool, actor, deps.now()),
+    allTimeStats: (actor: Actor) => allTimeStats(deps.pool, actor, deps.now()),
+    me: (actor: Actor) => meStats(deps.pool, actor),
     memberLeft: (id: string, userId: string) => memberLeft(deps.pool, id, userId),
     memberJoined: (actor: Actor) => memberJoined(deps.pool, actor),
   };
@@ -219,10 +240,17 @@ async function moveChat(pool: Pool, fromId: number | undefined, toId: number | u
   }
 }
 
-async function reply(ctx: Context, action: () => Promise<string | null>): Promise<void> {
+async function reply(ctx: Context, action: () => Promise<Reply | null>): Promise<void> {
   try {
-    const text = await action();
-    if (text) await ctx.reply(text);
+    const result = await action();
+    await deliver(
+      result,
+      async (text, extra) => {
+        await ctx.reply(text, extra as Parameters<Context["reply"]>[1]);
+      },
+      (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      result?.kind === "skit" ? telegramId(result.userId) : null,
+    );
   } catch (error) {
     console.error(error instanceof Error ? error.message : "command failed");
   }

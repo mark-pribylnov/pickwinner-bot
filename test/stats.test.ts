@@ -1,20 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allTimeTotal, formatBoard, formatStats, meLine, yearTotal } from "../src/stats.js";
-
-test("stats list scores high to low, then name", () => {
-  const text = formatStats([
-    { username: "riley", firstName: "Riley", userId: "4", score: 0 },
-    { username: "", firstName: "Alex", userId: "3", score: 1 },
-    { username: "samuel", firstName: "Sam", userId: "1", score: 4 },
-    { username: "alex", firstName: "Alex", userId: "2", score: 2 },
-  ]);
-  assert.equal(text, "@samuel — 4\n@alex — 2\nAlex — 1\n@riley — 0");
-});
-
-test("stats with nobody registered", () => {
-  assert.equal(formatStats([]), "No one has registered.");
-});
+import { allTimeTotal, formatBoard, meLine, yearTotal } from "../src/stats.js";
 
 test("year total drops the imported year after that year", () => {
   assert.equal(yearTotal({ importedYear: 36, importedForYear: 2026, currentYear: 2026, picks: 1 }), 37);
