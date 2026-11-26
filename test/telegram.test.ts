@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { commandMenu, memberViewFromStatus, telegramId } from "../src/telegram.js";
+import type { Pool } from "pg";
+import { commandMenu, memberViewFromStatus, moveChat, telegramId } from "../src/telegram.js";
 
 test("member status maps to in, out, or unknown", () => {
   assert.equal(memberViewFromStatus("left", {}).state, "out");
@@ -24,6 +25,18 @@ test("telegram ids stay exact safe integers", () => {
   assert.equal(telegramId("9007199254740993"), null);
   assert.equal(telegramId("01"), null);
   assert.equal(telegramId("nope"), null);
+});
+
+test("a maintenance-mode migration does not call the database", async () => {
+  const pool = {
+    connect: async () => {
+      assert.fail("database should not be called");
+    },
+    query: async () => {
+      assert.fail("database should not be called");
+    },
+  } as unknown as Pool;
+  await moveChat(true, pool, 1, 2);
 });
 
 test("the command menu is the six russian commands", () => {

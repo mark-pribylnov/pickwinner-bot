@@ -109,11 +109,13 @@ export function createBot(token: string, deps: BotDeps): Bot {
   });
 
   bot.on("message:migrate_to_chat_id", async (ctx) => {
-    await moveChat(deps.pool, ctx.chat?.id, ctx.message?.migrate_to_chat_id);
+    if (deps.maintenance) return;
+    await moveChat(deps.maintenance, deps.pool, ctx.chat?.id, ctx.message?.migrate_to_chat_id);
   });
 
   bot.on("message:migrate_from_chat_id", async (ctx) => {
-    await moveChat(deps.pool, ctx.message?.migrate_from_chat_id, ctx.chat?.id);
+    if (deps.maintenance) return;
+    await moveChat(deps.maintenance, deps.pool, ctx.message?.migrate_from_chat_id, ctx.chat?.id);
   });
 
   bot.on("my_chat_member", async () => {
@@ -231,7 +233,13 @@ function actorFrom(
   };
 }
 
-async function moveChat(pool: Pool, fromId: number | undefined, toId: number | undefined): Promise<void> {
+export async function moveChat(
+  maintenance: boolean,
+  pool: Pool,
+  fromId: number | undefined,
+  toId: number | undefined,
+): Promise<void> {
+  if (maintenance) return;
   if (fromId === undefined || toId === undefined) return;
   try {
     await migrateChat(pool, String(fromId), String(toId));
