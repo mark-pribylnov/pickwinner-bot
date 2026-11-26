@@ -45,3 +45,5 @@ npm run dev
 `npm test` uses `TEST_DATABASE_URL` when it is set. Otherwise it starts a local Postgres on port 54329 and uses the `pickwinner_test` database. Do not point `TEST_DATABASE_URL` at the database the bot uses.
 
 Add the bot to a group and send `/register`.
+
+The hosted bot runs on Neon and Cloud Run. The screens, the two database strings, and the webhook variable are in [docs/hosting.md](docs/hosting.md).
