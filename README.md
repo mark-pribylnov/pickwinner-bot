@@ -10,7 +10,7 @@ The messages never say when the next pick opens.
 - A Telegram bot token from BotFather
 - Postgres, already running
 
-The bot does not serve HTTP. It waits on Telegram with long polling.
+On your machine the bot waits on Telegram with long polling. Leave `WEBHOOK_SECRET` unset for that. On Cloud Run, set `WEBHOOK_SECRET` and the service listens for Telegram at `/telegram`. `WEBHOOK_URL` is the Cloud Run address, without a path. The bot registers `<that address>/telegram`.
 
 ## Setup
 

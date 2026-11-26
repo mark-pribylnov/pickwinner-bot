@@ -1,4 +1,5 @@
-import { Bot, type Api, type Context } from "grammy";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { Bot, webhookCallback, type Api, type Context } from "grammy";
 import type { Pool } from "pg";
 import { migrateChat } from "./db.js";
 import { memberJoined, memberLeft, play, register, stats, type Actor } from "./game.js";
@@ -104,11 +105,67 @@ export function createBot(token: string, deps: BotDeps): Bot {
   return bot;
 }
 
+const allowedUpdates = ["message", "my_chat_member"] as const;
+
 export async function startBot(bot: Bot): Promise<void> {
   await bot.api.setMyCommands([...commandMenu]);
   await bot.start({
-    allowed_updates: ["message", "my_chat_member"],
+    allowed_updates: [...allowedUpdates],
   });
+}
+
+export type WebhookListen = {
+  secret: string;
+  port: number;
+  url: string | null;
+};
+
+export async function startWebhook(bot: Bot, options: WebhookListen): Promise<Server> {
+  await bot.api.setMyCommands([...commandMenu]);
+  const handle = webhookCallback(bot, "http", {
+    secretToken: options.secret,
+    timeoutMilliseconds: 50_000,
+  });
+  const server = createServer((req, res) => {
+    void receive(handle, req, res);
+  });
+  await new Promise<void>((resolve, reject) => {
+    const onError = (error: Error) => reject(error);
+    server.once("error", onError);
+    server.listen(options.port, "0.0.0.0", () => {
+      server.off("error", onError);
+      resolve();
+    });
+  });
+  if (options.url) {
+    await bot.api.setWebhook(options.url, {
+      secret_token: options.secret,
+      allowed_updates: [...allowedUpdates],
+    });
+  }
+  return server;
+}
+
+async function receive(
+  handle: (req: IncomingMessage, res: ServerResponse) => Promise<void>,
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const path = (req.url ?? "").split("?")[0];
+  try {
+    if (req.method === "GET" && path === "/") {
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8" }).end("ok");
+      return;
+    }
+    if (req.method === "POST" && path === "/telegram") {
+      await handle(req, res);
+      return;
+    }
+    if (!res.headersSent) res.writeHead(404).end();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : "webhook failed");
+    if (!res.headersSent) res.writeHead(500).end();
+  }
 }
 
 function routeDeps(deps: BotDeps, api: Api, chatId: string) {

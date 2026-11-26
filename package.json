@@ -2,12 +2,16 @@
   "name": "pickwinner",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "22"
+  },
   "type": "module",
   "scripts": {
     "test": "node --import tsx --test --test-concurrency=1 test/*.test.ts",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc",
+    "gcp-build": "tsc",
     "db": "node scripts/dev-postgres.mjs"
   },
   "dependencies": {

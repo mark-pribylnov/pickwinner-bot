@@ -1,8 +1,9 @@
 import { randomInt } from "node:crypto";
+import type { Server } from "node:http";
 import { readConfig } from "./config.js";
 import { closePool, createPool, migrate } from "./db.js";
 import { loadEnvFile } from "./env.js";
-import { createBot, startBot } from "./telegram.js";
+import { createBot, startBot, startWebhook } from "./telegram.js";
 
 loadEnvFile(".env");
 
@@ -29,10 +30,17 @@ const bot = createBot(config.botToken, {
 });
 
 let stopping = false;
+let server: Server | null = null;
 async function stop(): Promise<void> {
   if (stopping) return;
   stopping = true;
-  await bot.stop();
+  if (server) {
+    await new Promise<void>((resolve, reject) => {
+      server?.close((error) => (error ? reject(error) : resolve()));
+    });
+  } else {
+    await bot.stop();
+  }
   await closePool(pool);
 }
 
@@ -43,4 +51,13 @@ process.once("SIGTERM", () => {
   void stop();
 });
 
-await startBot(bot);
+if (config.webhook) {
+  server = await startWebhook(bot, config.webhook);
+  const address = server.address();
+  const port = address && typeof address !== "string" ? address.port : config.webhook.port;
+  console.log(
+    config.webhook.url ? `webhook listening on ${port}` : `webhook listening on ${port}; WEBHOOK_URL is not set`,
+  );
+} else {
+  await startBot(bot);
+}
