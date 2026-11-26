@@ -6,7 +6,7 @@ export function parseHistory(raw: string): HistoryImport {
   const chatId = value.chatId;
   const year = value.year;
   const players = value.players;
-  if (typeof chatId !== "string" || chatId === "") throw new Error("chatId is required");
+  if (typeof chatId !== "string" || !/^-?\d+$/.test(chatId)) throw new Error("chatId must be an integer string");
   if (typeof year !== "number" || !Number.isInteger(year)) throw new Error("year must be an integer");
   if (!Array.isArray(players)) throw new Error("players must be a list");
   return {

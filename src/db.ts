@@ -158,29 +158,43 @@ export async function listPlayers(pool: pg.Pool, chatId: string): Promise<Player
 }
 
 export async function importTotals(pool: pg.Pool, history: HistoryImport): Promise<void> {
-  for (const player of history.players) {
-    await pool.query(
-      `INSERT INTO players (
-         chat_id, user_id, username, first_name, score, registered,
-         imported_all_time, imported_year, imported_for_year
-       )
-       VALUES ($1, $2, $3, $4, 0, true, $5, $6, $7)
-       ON CONFLICT (chat_id, user_id) DO UPDATE
-       SET username = EXCLUDED.username,
-           first_name = EXCLUDED.first_name,
-           imported_all_time = EXCLUDED.imported_all_time,
-           imported_year = EXCLUDED.imported_year,
-           imported_for_year = EXCLUDED.imported_for_year`,
-      [
-        history.chatId,
-        player.userId,
-        player.username,
-        player.firstName,
-        player.allTime,
-        player.yearCount,
-        history.year,
-      ],
-    );
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    for (const player of history.players) {
+      await client.query(
+        `INSERT INTO players (
+           chat_id, user_id, username, first_name, score, registered,
+           imported_all_time, imported_year, imported_for_year
+         )
+         VALUES ($1, $2, $3, $4, 0, true, $5, $6, $7)
+         ON CONFLICT (chat_id, user_id) DO UPDATE
+         SET username = CASE WHEN EXCLUDED.username <> '' THEN EXCLUDED.username ELSE players.username END,
+             first_name = CASE WHEN EXCLUDED.first_name <> '' THEN EXCLUDED.first_name ELSE players.first_name END,
+             imported_all_time = EXCLUDED.imported_all_time,
+             imported_year = EXCLUDED.imported_year,
+             imported_for_year = EXCLUDED.imported_for_year`,
+        [
+          history.chatId,
+          player.userId,
+          player.username,
+          player.firstName,
+          player.allTime,
+          player.yearCount,
+          history.year,
+        ],
+      );
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      // The transaction is already closed.
+    }
+    throw error;
+  } finally {
+    client.release();
   }
 }
 

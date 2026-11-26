@@ -10,7 +10,9 @@ const raw = await readFile(new URL("../history.json", import.meta.url), "utf8");
 const pool = createPool(config.databaseUrl);
 try {
   await migrate(pool);
-  await importTotals(pool, parseHistory(raw));
+  const history = parseHistory(raw);
+  await importTotals(pool, history);
+  console.log(`imported chat ${history.chatId}: ${history.players.length} players written`);
 } finally {
   await closePool(pool);
 }

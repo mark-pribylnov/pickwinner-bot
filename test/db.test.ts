@@ -199,3 +199,51 @@ test("pick counts group by user for one year prefix", async () => {
   assert.equal(year.get("1"), 1);
   assert.equal(year.get("2"), undefined);
 });
+
+test("import keeps an existing name when the incoming name is empty", async () => {
+  const chatId = randomUUID();
+  await registerPlayer(pool, { chatId, userId: "7", username: "mark", firstName: "Mark" });
+  await importTotals(pool, {
+    chatId,
+    year: 2026,
+    players: [{ userId: "7", username: "", firstName: "", allTime: 5, yearCount: 2 }],
+  });
+  const player = (await listPlayers(pool, chatId))[0];
+  assert.equal(player?.username, "mark");
+  assert.equal(player?.firstName, "Mark");
+  assert.equal(player?.importedAllTime, 5);
+});
+
+test("a failed import writes no rows", async () => {
+  const chatId = randomUUID();
+  await assert.rejects(
+    importTotals(pool, {
+      chatId,
+      year: 2026,
+      players: [
+        { userId: "1", username: "a", firstName: "A", allTime: 1, yearCount: 1 },
+        { userId: "2", username: "b", firstName: "B", allTime: Number.NaN, yearCount: 1 },
+      ],
+    }),
+  );
+  assert.deepEqual(await listPlayers(pool, chatId), []);
+});
+
+test("a chat upgrade keeps the greater imported all-time total", async () => {
+  const fromChat = randomUUID();
+  const toChat = randomUUID();
+  await registerPlayer(pool, { chatId: fromChat, userId: "1", username: "a", firstName: "A" });
+  await registerPlayer(pool, { chatId: toChat, userId: "1", username: "a", firstName: "A" });
+  await registerPlayer(pool, { chatId: fromChat, userId: "2", username: "b", firstName: "B" });
+  await registerPlayer(pool, { chatId: toChat, userId: "2", username: "b", firstName: "B" });
+  await pool.query("UPDATE players SET imported_all_time = 146 WHERE chat_id = $1 AND user_id = '1'", [fromChat]);
+  await pool.query("UPDATE players SET imported_all_time = 100 WHERE chat_id = $1 AND user_id = '1'", [toChat]);
+  await pool.query("UPDATE players SET imported_all_time = 10 WHERE chat_id = $1 AND user_id = '2'", [fromChat]);
+  await pool.query("UPDATE players SET imported_all_time = 50 WHERE chat_id = $1 AND user_id = '2'", [toChat]);
+
+  await migrateChat(pool, fromChat, toChat);
+
+  const moved = new Map((await listPlayers(pool, toChat)).map((player) => [player.userId, player]));
+  assert.equal(moved.get("1")?.importedAllTime, 146);
+  assert.equal(moved.get("2")?.importedAllTime, 50);
+});

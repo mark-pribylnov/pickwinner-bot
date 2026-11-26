@@ -109,14 +109,28 @@ export function createBot(token: string, deps: BotDeps): Bot {
   });
 
   bot.on("message:migrate_to_chat_id", async (ctx) => {
-    if (deps.maintenance) return;
     await moveChat(deps.maintenance, deps.pool, ctx.chat?.id, ctx.message?.migrate_to_chat_id);
   });
 
   bot.on("message:migrate_from_chat_id", async (ctx) => {
-    if (deps.maintenance) return;
     await moveChat(deps.maintenance, deps.pool, ctx.message?.migrate_from_chat_id, ctx.chat?.id);
   });
+
+  if (deps.maintenance) {
+    // A command with no handler above still gets the maintenance line.
+    bot.on("message:entities:bot_command", async (ctx) => {
+      await reply(ctx, async () => {
+        const entity = ctx.message.entities.find((item) => item.type === "bot_command" && item.offset === 0);
+        if (!entity || !ctx.chat || !ctx.from) return null;
+        const [name = "", target] = ctx.message.text.slice(1, entity.length).split("@");
+        if (target !== undefined && target.toLowerCase() !== (ctx.me.username ?? "").toLowerCase()) return null;
+        return handle(
+          { kind: "command", command: name, chatType: ctx.chat.type, actor: actorFrom(ctx.chat.id, ctx.from) },
+          String(ctx.chat.id),
+        );
+      });
+    });
+  }
 
   bot.on("my_chat_member", async () => {
     // Removing the bot keeps the saved rows.
@@ -254,7 +268,7 @@ async function reply(ctx: Context, action: () => Promise<Reply | null>): Promise
     await deliver(
       result,
       async (text, extra) => {
-        await ctx.reply(text, extra as Parameters<Context["reply"]>[1]);
+        await ctx.reply(text, extra);
       },
       (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
       result?.kind === "skit" ? telegramId(result.userId) : null,

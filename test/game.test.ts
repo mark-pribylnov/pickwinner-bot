@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import type { Pool } from "pg";
-import { closePool, createPool, getPick, listPlayers, migrate } from "../src/db.js";
+import { closePool, createPool, getPick, listPlayers, migrate, tryRecordPick } from "../src/db.js";
 import { allTimeStats, meStats, memberJoined, memberLeft, play, register, yearStats } from "../src/game.js";
 import { textReply } from "../src/reply.js";
 import type { MemberView } from "../src/members.js";
@@ -187,5 +187,20 @@ test("a leaver stays on the board and an empty chat does not", async () => {
   if (board.kind === "text") {
     assert.match(board.text, /sam — 4 раз\(а\)/);
     assert.match(board.text, /Всего участников — 0/);
+  }
+});
+
+test("a leaver with a pick this Moscow year is on the year board", async () => {
+  const chatId = randomUUID();
+  await register(pool, { chatId, userId: "1", username: "alex", firstName: "Alex" });
+  await register(pool, { chatId, userId: "2", username: "sam", firstName: "Sam" });
+  await tryRecordPick(pool, chatId, "2026-11-24", "2");
+  await memberLeft(pool, chatId, "2");
+  const actor = { chatId, userId: "1", username: "alex", firstName: "Alex" };
+  const board = await yearStats(pool, actor, new Date("2026-11-27T12:00:00.000Z"));
+  assert.equal(board.kind, "text");
+  if (board.kind === "text") {
+    assert.match(board.text, /1\. sam — 1 раз\(а\)/);
+    assert.match(board.text, /Всего участников — 1/);
   }
 });

@@ -1,7 +1,8 @@
+import type { MessageEntity } from "grammy/types";
 import type { Reply } from "./reply.js";
 import { skitPauseMs } from "./reply.js";
 
-type Extra = { entities: unknown[] };
+type Extra = { entities: MessageEntity[] };
 
 export async function deliver(
   reply: Reply | null,
@@ -24,7 +25,7 @@ export async function deliver(
     await send(line);
     await wait(skitPauseMs);
   }
-  const extra =
+  const extra: Extra | undefined =
     mentionId === null
       ? undefined
       : {
