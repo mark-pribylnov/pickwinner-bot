@@ -25,6 +25,23 @@ Cloud Run does not put its public `https://…run.app` address into the containe
 
 A push to `main` on `mark-pribylnov/pickwinner-bot` builds a new Cloud Run revision from that commit. The build uses Google Cloud Buildpacks (`gcp-build` runs `tsc`). The repository has no `Dockerfile`.
 
+## BotFather: group privacy
+
+Pickwinner must not receive ordinary group messages. Sublime does, which is why a command addressed to Pickwinner can still make Sublime reply.
+
+In BotFather:
+
+1. Open [@BotFather](https://t.me/BotFather).
+2. Send `/setprivacy`.
+3. Choose this bot.
+4. Choose **Enable**.
+
+**Enable** is privacy mode on. In the group member list the bot then shows **нет доступа к сообщениям**.
+
+Leave it that way. **Disable** changes the line to **имеет доступ к сообщениям** and Telegram sends the bot every message in the group, including commands meant for another bot.
+
+With **Enable**, the bot still receives its own commands (`/pwreg`, `/pw`, and the rest), replies to its own messages, `@` mentions of the bot, and join/leave service messages. It does not need to be a group admin. An admin receives every message even when privacy is enabled, so do not promote the bot for that reason.
+
 ## Neon: create the database
 
 1. Open [console.neon.tech](https://console.neon.tech) and sign in.

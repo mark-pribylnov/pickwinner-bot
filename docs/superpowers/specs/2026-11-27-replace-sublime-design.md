@@ -30,6 +30,7 @@ Pickwinner replaces Sublime for one Russian-speaking group. The roster rules sta
 - A transient membership lookup does not unregister anyone.
 - A supergroup upgrade moves the rows onto the new chat id.
 - The bot is not a group admin. The label is the message, not a Telegram title.
+- BotFather group privacy stays enabled (`/setprivacy` → **Enable**). The group shows **нет доступа к сообщениям**. The bot receives its own commands, replies, mentions, and join/leave notices. It does not receive ordinary chat. Disabling privacy, or making the bot an admin, would send it every message, including commands addressed to another bot.
 
 The joke in the rules about waiting for everyone is not a rule. Two registered players are enough.
 

@@ -17,6 +17,7 @@ A spec in `docs/superpowers/specs/` is a plan. `2026-11-24-pickwinner-design.md`
 - A private chat or a channel gets `Эта игра только для групповых чатов.` for the group commands. `/pwrules`, `/start`, and `/help` still answer.
 - A failed command is written to the log and not sent to the chat.
 - `npm run dev` runs with `MAINTENANCE=1`. It long-polls with the token in `.env`, does not play, saves nothing, and answers every command with the maintenance line. The part after `Попробуйте позже` is a spoiler. While it runs, Cloud Run does not receive commands. Stopping it does not register the webhook again.
+- Group privacy stays enabled in BotFather (`/setprivacy` → **Enable**). The group member list shows **нет доступа к сообщениям**. The bot receives its own commands, replies to itself, mentions, and join/leave notices. It does not receive ordinary chat.
 
 ## Has not
 
@@ -26,6 +27,7 @@ A spec in `docs/superpowers/specs/` is a plan. `2026-11-24-pickwinner-design.md`
 - Slap, me, shrug, or any other command beyond the list above.
 - A key-value store, a notebook, or game releases.
 - A second bot token.
+- Access to every group message. BotFather privacy stays **Enable**. The member list must not say **имеет доступ к сообщениям**. The bot is not made a group admin to bypass that.
 
 ## Planned
 
