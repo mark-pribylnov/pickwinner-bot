@@ -3,5 +3,6 @@ dist/
 .env
 data/
 .superpowers/
+history.json
 
 .worktrees/
