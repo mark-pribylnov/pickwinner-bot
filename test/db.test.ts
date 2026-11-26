@@ -1,0 +1,156 @@
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import test from "node:test";
+import type { Pool } from "pg";
+import {
+  closePool,
+  createPool,
+  getPick,
+  listPlayers,
+  migrate,
+  migrateChat,
+  registerPlayer,
+  setRegistered,
+  tryRecordPick,
+  updateProfile,
+} from "../src/db.js";
+import { testDatabaseUrl } from "./postgres.js";
+
+let pool: Pool;
+
+test.before(async () => {
+  const url = await testDatabaseUrl();
+  const database = new URL(url).pathname;
+  if (!database.endsWith("/pickwinner_test")) {
+    throw new Error("TEST_DATABASE_URL must use the pickwinner_test database");
+  }
+  pool = createPool(url);
+  await migrate(pool);
+});
+
+test.after(async () => {
+  await closePool(pool);
+});
+
+test("register creates a player at score 0", async () => {
+  const chatId = randomUUID();
+  const result = await registerPlayer(pool, {
+    chatId,
+    userId: "1",
+    username: "alex",
+    firstName: "Alex",
+  });
+  assert.equal(result, "created");
+  const [player] = await listPlayers(pool, chatId);
+  assert.deepEqual(player, {
+    chatId,
+    userId: "1",
+    username: "alex",
+    firstName: "Alex",
+    score: 0,
+    registered: true,
+  });
+});
+
+test("registering again keeps the score and replaces the username", async () => {
+  const chatId = randomUUID();
+  await registerPlayer(pool, { chatId, userId: "1", username: "alex", firstName: "Alex" });
+  await pool.query("UPDATE players SET score = 4 WHERE chat_id = $1 AND user_id = $2", [chatId, "1"]);
+  const result = await registerPlayer(pool, {
+    chatId,
+    userId: "1",
+    username: "alexander",
+    firstName: "Alexander",
+  });
+  assert.equal(result, "already");
+  const [player] = await listPlayers(pool, chatId);
+  assert.equal(player?.score, 4);
+  assert.equal(player?.username, "alexander");
+  assert.equal(player?.registered, true);
+});
+
+test("register after leaving keeps the score", async () => {
+  const chatId = randomUUID();
+  await registerPlayer(pool, { chatId, userId: "1", username: "sam", firstName: "Sam" });
+  await pool.query("UPDATE players SET score = 4 WHERE chat_id = $1 AND user_id = $2", [chatId, "1"]);
+  await setRegistered(pool, chatId, "1", false);
+  const result = await registerPlayer(pool, {
+    chatId,
+    userId: "1",
+    username: "samuel",
+    firstName: "Samuel",
+  });
+  assert.equal(result, "reregistered");
+  const [player] = await listPlayers(pool, chatId);
+  assert.equal(player?.score, 4);
+  assert.equal(player?.username, "samuel");
+  assert.equal(player?.registered, true);
+});
+
+test("updateProfile does not insert a missing player", async () => {
+  const chatId = randomUUID();
+  await updateProfile(pool, { chatId, userId: "9", username: "nope", firstName: "Nope" });
+  assert.deepEqual(await listPlayers(pool, chatId), []);
+});
+
+test("a pick is stored once per UTC date and increments the score once", async () => {
+  const chatId = randomUUID();
+  await registerPlayer(pool, { chatId, userId: "1", username: "alex", firstName: "Alex" });
+  assert.equal(await tryRecordPick(pool, chatId, "2026-11-24", "1"), "recorded");
+  assert.deepEqual(await getPick(pool, chatId, "2026-11-24"), { userId: "1" });
+  assert.equal((await listPlayers(pool, chatId))[0]?.score, 1);
+
+  assert.equal(await tryRecordPick(pool, chatId, "2026-11-24", "1"), "conflict");
+  assert.equal((await listPlayers(pool, chatId))[0]?.score, 1);
+
+  assert.equal(await tryRecordPick(pool, chatId, "2026-11-25", "1"), "recorded");
+  assert.equal((await listPlayers(pool, chatId))[0]?.score, 2);
+});
+
+test("two simultaneous picks produce one score", async () => {
+  const chatId = randomUUID();
+  await registerPlayer(pool, { chatId, userId: "1", username: "alex", firstName: "Alex" });
+  const results = await Promise.all([
+    tryRecordPick(pool, chatId, "2026-11-24", "1"),
+    tryRecordPick(pool, chatId, "2026-11-24", "1"),
+  ]);
+  results.sort();
+  assert.deepEqual(results, ["conflict", "recorded"]);
+  assert.equal((await listPlayers(pool, chatId))[0]?.score, 1);
+});
+
+test("a supergroup upgrade keeps scores and the day's pick", async () => {
+  const fromChat = randomUUID();
+  const toChat = randomUUID();
+  await registerPlayer(pool, { chatId: fromChat, userId: "1", username: "alex", firstName: "Alex" });
+  await registerPlayer(pool, { chatId: fromChat, userId: "2", username: "sam", firstName: "Sam" });
+  await registerPlayer(pool, { chatId: toChat, userId: "1", username: "", firstName: "Alex" });
+  await pool.query("UPDATE players SET score = 4 WHERE chat_id = $1 AND user_id = '1'", [fromChat]);
+  await pool.query(
+    "INSERT INTO picks (chat_id, utc_date, user_id) VALUES ($1, '2026-11-24', '1'), ($2, '2026-11-24', '1')",
+    [fromChat, toChat],
+  );
+
+  await migrateChat(pool, fromChat, toChat);
+
+  assert.deepEqual(await listPlayers(pool, fromChat), []);
+  const moved = new Map((await listPlayers(pool, toChat)).map((player) => [player.userId, player]));
+  assert.equal(moved.size, 2);
+  assert.equal(moved.get("1")?.score, 4);
+  assert.equal(moved.get("1")?.username, "alex");
+  assert.equal(moved.get("1")?.registered, true);
+  assert.equal(moved.get("2")?.username, "sam");
+  assert.deepEqual(await getPick(pool, toChat, "2026-11-24"), { userId: "1" });
+  assert.equal(await getPick(pool, fromChat, "2026-11-24"), null);
+});
+
+test("groups do not share picks or scores", async () => {
+  const first = randomUUID();
+  const second = randomUUID();
+  await registerPlayer(pool, { chatId: first, userId: "1", username: "alex", firstName: "Alex" });
+  await registerPlayer(pool, { chatId: second, userId: "1", username: "alex", firstName: "Alex" });
+  await tryRecordPick(pool, first, "2026-11-24", "1");
+  assert.equal(await getPick(pool, second, "2026-11-24"), null);
+  assert.equal((await listPlayers(pool, second))[0]?.score, 0);
+  assert.equal((await listPlayers(pool, first))[0]?.score, 1);
+});
