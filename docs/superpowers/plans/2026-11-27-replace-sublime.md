@@ -1,5 +1,7 @@
 # Replace Sublime Implementation Plan
 
+> Built. The bot's commands are now `/pwreg`, `/pw`, `/pwstats`, `/pwall`, `/pwme`, and `/pwrules`. A second registration answers `Эй, ты уже в игре!`. This file still shows the old `/pidor` names from the build. Follow `docs/state.md`. Do not implement this plan again.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make Pickwinner the Russian daily draw this group already plays, on one bot token, with Sublime's totals loaded as numbers.

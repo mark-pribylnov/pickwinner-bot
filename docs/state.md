@@ -2,7 +2,7 @@
 
 This file is the current picture of the app. Update it in the same change as any behavior change. The rule is in `AGENTS.md`.
 
-A spec in `docs/superpowers/specs/` is a plan. `2026-11-24-pickwinner-design.md` is what the first bot was built from. `2026-11-27-replace-sublime-design.md` is built. It replaced the English commands with the Russian draw.
+A spec in `docs/superpowers/specs/` is a plan. `2026-11-24-pickwinner-design.md` is what the first bot was built from. `2026-11-27-replace-sublime-design.md` is built. It replaced the English commands with the Russian draw. `docs/superpowers/plans/2026-11-27-replace-sublime.md` is the build log for that work. It still shows the old `/pidor` command names. Do not copy commands from it. The names in this file are the ones the bot uses.
 
 ## Has
 

@@ -6,6 +6,8 @@
 
 A spec in `docs/superpowers/specs/` is a plan. `docs/state.md` says which spec is built and which spec is approved and still unbuilt. When they disagree, `docs/state.md` is the one to follow.
 
+A file in `docs/superpowers/plans/` is a build log. Once `docs/state.md` says that work is built, do not implement the plan again and do not copy command names or reply text out of it.
+
 Update `docs/state.md` in the same change as any player-facing or game-rule change.
 
 - A behavior you add goes under what the app does, written the way a player would notice it.
