@@ -1,5 +1,21 @@
 # Agent rules
 
+## Development state
+
+`docs/state.md` is the current picture of the app. It has three parts: what the app does, what it does not do, and what is planned. If nothing is planned, the planned part says so.
+
+A spec in `docs/superpowers/specs/` is a plan. `docs/state.md` says which spec is built and which spec is approved and still unbuilt. When they disagree, `docs/state.md` is the one to follow.
+
+Update `docs/state.md` in the same change as any player-facing or game-rule change.
+
+- A behavior you add goes under what the app does, written the way a player would notice it.
+- A behavior you remove leaves that section and, if it is worth remembering, goes under what the app does not do.
+- A plan that is approved and not built goes under planned, with a link to its spec. Building it moves that entry into what the app does and removes it from planned.
+- A plan that is dropped is removed from planned. It is not described as something the app does.
+- Do not leave an entry for a behavior the code does not have.
+
+Keep each entry short. Link the spec for the design. Do not paste the spec into `docs/state.md`.
+
 ## Hosting
 
 Before guiding Neon, Cloud Run, Telegram webhooks, or a production env var, read `docs/hosting.md` and follow it one screen at a time. Name the site and the control. Say what the user should see before the next click. The user got lost when instructions skipped the screen they were looking at.
