@@ -2,14 +2,14 @@
 
 A Telegram bot for a group. The game and every reply are in Russian.
 
-- `/pidoreg` registers you. You stay registered until you leave the group.
-- `/pidor` runs the draw. It needs at least two registered players, and the sender can win. The first draw of the day sends a short skit and a mention of the winner. A later `/pidor` that day sends one line with the winner's name.
-- `/pidorstats` shows the top 10 for the current year.
-- `/pidorall` shows the top 10 of all time.
-- `/pidorme` shows your own all-time count.
-- `/pidorules` shows the rules.
+- `/pwreg` registers you. You stay registered until you leave the group.
+- `/pw` runs the draw. It needs at least two registered players, and the sender can win. The first draw of the day sends a short skit and a mention of the winner. A later `/pw` that day sends one line with the winner's name.
+- `/pwstats` shows the top 10 for the current year.
+- `/pwall` shows the top 10 of all time.
+- `/pwme` shows your own all-time count.
+- `/pwrules` shows the rules.
 
-The game day is a Moscow day (UTC+3). It resets at midnight Moscow, and `/pidorules` says so. The score stays on the Telegram user id. The top 10 includes people who left, as long as their count is above 0.
+The game day is a Moscow day (UTC+3). It resets at midnight Moscow, and `/pwrules` says so. The score stays on the Telegram user id. The top 10 includes people who left, as long as their count is above 0.
 
 `npm run dev` starts the bot in maintenance mode. It does not play. It answers every command with a maintenance line, and the part after `Попробуйте позже` is a spoiler.
 
@@ -57,6 +57,6 @@ npm run dev
 
 `npm run dev` only answers with the maintenance line. To play, use the Cloud Run bot, or run `npm start` with `MAINTENANCE` unset after `npm run build`.
 
-Add the bot to a group and send `/pidoreg`.
+Add the bot to a group and send `/pwreg`.
 
 The hosted bot runs on Neon and Cloud Run. The screens, the two database strings, and the webhook variable are in [docs/hosting.md](docs/hosting.md).

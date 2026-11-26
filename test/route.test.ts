@@ -43,16 +43,16 @@ test("only groups and supergroups are game chats", () => {
   assert.equal(isGroupChat(undefined), false);
 });
 
-test("a private /pidor asks to join a group and calls nothing", async () => {
+test("a private /pw asks to join a group and calls nothing", async () => {
   const deps = spies();
-  assert.deepEqual(await route(command("pidor", "private"), deps), textReply(ru.addToGroup));
-  assert.deepEqual(await route(command("pidorstats", "channel"), deps), textReply(ru.addToGroup));
+  assert.deepEqual(await route(command("pw", "private"), deps), textReply(ru.addToGroup));
+  assert.deepEqual(await route(command("pwstats", "channel"), deps), textReply(ru.addToGroup));
   assert.deepEqual(deps.calls, []);
 });
 
 test("private rules, start, and help answer without the game", async () => {
   const deps = spies();
-  assert.deepEqual(await route(command("pidorules", "private"), deps), textReply(ru.rules));
+  assert.deepEqual(await route(command("pwrules", "private"), deps), textReply(ru.rules));
   assert.deepEqual(await route(command("start", "private"), deps), textReply(ru.help));
   assert.deepEqual(await route(command("help", "private"), deps), textReply(ru.help));
   assert.deepEqual(deps.calls, []);
@@ -61,11 +61,11 @@ test("private rules, start, and help answer without the game", async () => {
 test("each group command calls its handler", async () => {
   const deps = spies();
   const expected = [
-    ["pidor", "play"],
-    ["pidoreg", "register"],
-    ["pidorstats", "yearStats"],
-    ["pidorall", "allTimeStats"],
-    ["pidorme", "me"],
+    ["pw", "play"],
+    ["pwreg", "register"],
+    ["pwstats", "yearStats"],
+    ["pwall", "allTimeStats"],
+    ["pwme", "me"],
   ] as const;
   for (const [name, call] of expected) {
     assert.deepEqual(await route(command(name, "group"), deps), textReply("ok"));
@@ -86,7 +86,7 @@ test("maintenance answers every command and calls nothing", async () => {
   const deps = spies();
   for (const chatType of ["private", "group"]) {
     assert.deepEqual(
-      await dispatch({ maintenance: true, event: command("pidor", chatType) }, deps),
+      await dispatch({ maintenance: true, event: command("pw", chatType) }, deps),
       maintenanceMessage(),
     );
   }

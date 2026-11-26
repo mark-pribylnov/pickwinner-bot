@@ -18,12 +18,12 @@ import type { Reply } from "./reply.js";
 import { dispatch, type RouteEvent } from "./route.js";
 
 export const commandMenu = [
-  { command: "pidor", description: "Запустить розыгрыш" },
-  { command: "pidoreg", description: "Зарегистрироваться" },
-  { command: "pidorstats", description: "Топ за текущий год" },
-  { command: "pidorall", description: "Топ за всё время" },
-  { command: "pidorme", description: "Личная статистика" },
-  { command: "pidorules", description: "Правила игры" },
+  { command: "pw", description: "Запустить розыгрыш" },
+  { command: "pwreg", description: "Зарегистрироваться" },
+  { command: "pwstats", description: "Топ за текущий год" },
+  { command: "pwall", description: "Топ за всё время" },
+  { command: "pwme", description: "Личная статистика" },
+  { command: "pwrules", description: "Правила игры" },
 ] as const;
 
 const inGroup = new Set(["creator", "administrator", "member", "restricted"]);
@@ -62,7 +62,7 @@ export function createBot(token: string, deps: BotDeps): Bot {
   const handle = (event: RouteEvent, chatId: string) =>
     dispatch({ maintenance: deps.maintenance, event }, depsFor(chatId));
 
-  for (const command of ["start", "help", "pidoreg", "pidor", "pidorstats", "pidorall", "pidorme", "pidorules"] as const) {
+  for (const command of ["start", "help", "pwreg", "pw", "pwstats", "pwall", "pwme", "pwrules"] as const) {
     bot.command(command, async (ctx) => {
       await reply(ctx, async () => {
         if (!ctx.chat || !ctx.from) return null;

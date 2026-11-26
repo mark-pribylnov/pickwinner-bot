@@ -6,7 +6,7 @@ Pickwinner replaces Sublime for one Russian-speaking group. The roster rules sta
 
 ## Goals
 
-- The six commands the group already types: `/pidor`, `/pidoreg`, `/pidorstats`, `/pidorall`, `/pidorme`, `/pidorules`.
+- The six commands the group already types: `/pw`, `/pwreg`, `/pwstats`, `/pwall`, `/pwme`, `/pwrules`.
 - Player-facing text in Russian. The menu descriptions are Russian.
 - One winner per group per Moscow date. The first command that day plays a short skit. Later commands that day name the winner and skip the skit.
 - Year and all-time counts, with Sublime's totals loaded as numbers.
@@ -22,7 +22,7 @@ Pickwinner replaces Sublime for one Russian-speaking group. The roster rules sta
 ## Rules that stay
 
 - A person registers once and stays in the draw until they leave the group.
-- Leaving drops them from the draw and keeps the score. Joining again requires `/pidoreg`. The score stays on the Telegram user id.
+- Leaving drops them from the draw and keeps the score. Joining again requires `/pwreg`. The score stays on the Telegram user id.
 - The sender must be registered. The draw needs two registered players. The draw is even. The sender can win. Yesterday's winner can win again.
 - The winner is saved before any announcement is sent. Two commands at once produce one winner. The database primary key is the lock.
 - Each group has its own roster, winner, and scores.
@@ -47,54 +47,54 @@ The menu is only these six. `/start` and `/help` answer and are not in the menu.
 
 | Command | Menu description |
 | --- | --- |
-| `pidor` | Запустить розыгрыш |
-| `pidoreg` | Зарегистрироваться |
-| `pidorstats` | Топ за текущий год |
-| `pidorall` | Топ за всё время |
-| `pidorme` | Личная статистика |
-| `pidorules` | Правила игры |
+| `pw` | Запустить розыгрыш |
+| `pwreg` | Зарегистрироваться |
+| `pwstats` | Топ за текущий год |
+| `pwall` | Топ за всё время |
+| `pwme` | Личная статистика |
+| `pwrules` | Правила игры |
 
 `/start` and `/help` reply:
 
 ```
-/pidoreg — зарегистрироваться
-/pidor — запустить розыгрыш
-/pidorstats — топ за текущий год
-/pidorall — топ за всё время
-/pidorme — личная статистика
-/pidorules — правила
+/pwreg — зарегистрироваться
+/pw — запустить розыгрыш
+/pwstats — топ за текущий год
+/pwall — топ за всё время
+/pwme — личная статистика
+/pwrules — правила
 ```
 
-`/pidorules` replies:
+`/pwrules` replies:
 
 ```
 Правила игры Пидор Дня (только для групповых чатов):
-1. Зарегистрируйтесь в игру по команде /pidoreg
+1. Зарегистрируйтесь в игру по команде /pwreg
 2. Подождите пока зарегистрируются все (или большинство :)
-3. Запустите розыгрыш по команде /pidor
-4. Просмотр статистики по команде /pidorstats, /pidorall
-5. Личная статистика по команде /pidorme
+3. Запустите розыгрыш по команде /pw
+4. Просмотр статистики по команде /pwstats, /pwall
+5. Личная статистика по команде /pwme
 
 Важно, розыгрыш проходит только раз в день, повторная команда выведет результат игры.
 
 Сброс розыгрыша происходит каждый день в 12 часов ночи по Москве (UTC+3).
 ```
 
-In a private chat, `/start`, `/help`, and `/pidorules` still answer. Every other command answers `Эта игра только для групповых чатов.`
+In a private chat, `/start`, `/help`, and `/pwrules` still answer. Every other command answers `Эта игра только для групповых чатов.`
 
 Other replies:
 
 | Situation | Reply |
 | --- | --- |
 | New registration, or registration after leaving | `Вы в игре.` |
-| Already registered | `Вы уже в игре.` |
-| `/pidor` from someone who is not registered | `Сначала зарегистрируйтесь: /pidoreg` |
+| Already registered | `Эй, ты уже в игре!` |
+| `/pw` from someone who is not registered | `Сначала зарегистрируйтесь: /pwreg` |
 | Fewer than two registered players | `Нужен ещё один игрок.` |
 | Stats when the group has no rows | `Пока никто не зарегистрирован.` |
 
 ## Draw
 
-`/pidor` does the checks in this order. A refusal does not write a pick and does not change a score.
+`/pw` does the checks in this order. A refusal does not write a pick and does not change a score.
 
 1. Refresh membership and names for this group.
 2. If the sender is not registered, send the register-first line.
@@ -108,7 +108,7 @@ The result line uses the winner's username with no `@`. A winner with no usernam
 Согласно моей информации, по результатам сегодняшнего розыгрыша пидор дня - mark_pribylnov!
 ```
 
-Sending `/pidor` again that day sends this same line again.
+Sending `/pw` again that day sends this same line again.
 
 The skit is four messages, two seconds apart. The first three are plain text. The fourth mentions the winner. The mention is a Telegram text mention of their user id, so it works when they have no username. The visible text is `@` plus the username, or the first name when they have none.
 
@@ -128,7 +128,7 @@ One script is chosen at random from the fixed list below. The lines are the ones
 
 The game returns the lines, the script index, and the winner. The Telegram sender waits and sends. Tests inject the script index and do not wait.
 
-If a send fails after the save, the winner stands. The next `/pidor` sends the result line.
+If a send fails after the save, the winner stands. The next `/pw` sends the result line.
 
 ## Stats
 
@@ -136,7 +136,7 @@ Names in the top lists are the username with no `@`, or the first name. Sort by 
 
 `Всего участников` is the number of people registered now.
 
-`/pidorstats`:
+`/pwstats`:
 
 ```
 Топ-10 пидоров за текущий год:
@@ -146,9 +146,9 @@ Names in the top lists are the username with no `@`, or the first name. Sort by 
 Всего участников — 2
 ```
 
-`/pidorall` uses the header `Топ-10 пидоров за все время:`. The word is always `раз(а)`.
+`/pwall` uses the header `Топ-10 пидоров за все время:`. The word is always `раз(а)`.
 
-`/pidorme` uses the all-time count. With a username:
+`/pwme` uses the all-time count. With a username:
 
 ```
 @mark_pribylnov, ты был(а) пидором дня — 146 раз!

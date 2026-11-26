@@ -29,7 +29,7 @@ test("one registered player does not use up the day", async () => {
   const chatId = randomUUID();
   const alex = { chatId, userId: "1", username: "alex", firstName: "Alex" };
   assert.deepEqual(await register(pool, alex), textReply("Вы в игре."));
-  assert.deepEqual(await register(pool, alex), textReply("Вы уже в игре."));
+  assert.deepEqual(await register(pool, alex), textReply("Эй, ты уже в игре!"));
   const reply = await play(pool, alex, {
     now: new Date("2026-11-24T12:00:00.000Z"),
     randomIndex: () => 0,
@@ -54,11 +54,11 @@ test("an unregistered person cannot play", async () => {
       lookup: async (userId) => stay(userId, userId),
     },
   );
-  assert.deepEqual(reply, textReply("Сначала зарегистрируйтесь: /pidoreg"));
+  assert.deepEqual(reply, textReply("Сначала зарегистрируйтесь: /pwreg"));
   assert.equal(await getPick(pool, chatId, "2026-11-24"), null);
 });
 
-test("the sender can win, and a second pidor the same day names them", async () => {
+test("the sender can win, and a second draw the same day names them", async () => {
   const chatId = randomUUID();
   const alex = { chatId, userId: "1", username: "alex", firstName: "Alex" };
   const sam = { chatId, userId: "2", username: "sam", firstName: "Sam" };

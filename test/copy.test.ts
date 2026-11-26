@@ -4,31 +4,31 @@ import { maintenanceMessage, resultLine, ru } from "../src/copy.js";
 
 test("russian copy matches the spec", () => {
   assert.equal(ru.registered, "Вы в игре.");
-  assert.equal(ru.alreadyRegistered, "Вы уже в игре.");
-  assert.equal(ru.registerBeforePlay, "Сначала зарегистрируйтесь: /pidoreg");
+  assert.equal(ru.alreadyRegistered, "Эй, ты уже в игре!");
+  assert.equal(ru.registerBeforePlay, "Сначала зарегистрируйтесь: /pwreg");
   assert.equal(ru.needAnotherPlayer, "Нужен ещё один игрок.");
   assert.equal(ru.noOneRegistered, "Пока никто не зарегистрирован.");
   assert.equal(ru.addToGroup, "Эта игра только для групповых чатов.");
   assert.equal(
     ru.help,
     [
-      "/pidoreg — зарегистрироваться",
-      "/pidor — запустить розыгрыш",
-      "/pidorstats — топ за текущий год",
-      "/pidorall — топ за всё время",
-      "/pidorme — личная статистика",
-      "/pidorules — правила",
+      "/pwreg — зарегистрироваться",
+      "/pw — запустить розыгрыш",
+      "/pwstats — топ за текущий год",
+      "/pwall — топ за всё время",
+      "/pwme — личная статистика",
+      "/pwrules — правила",
     ].join("\n"),
   );
   assert.equal(
     ru.rules,
     [
       "Правила игры Пидор Дня (только для групповых чатов):",
-      "1. Зарегистрируйтесь в игру по команде /pidoreg",
+      "1. Зарегистрируйтесь в игру по команде /pwreg",
       "2. Подождите пока зарегистрируются все (или большинство :)",
-      "3. Запустите розыгрыш по команде /pidor",
-      "4. Просмотр статистики по команде /pidorstats, /pidorall",
-      "5. Личная статистика по команде /pidorme",
+      "3. Запустите розыгрыш по команде /pw",
+      "4. Просмотр статистики по команде /pwstats, /pwall",
+      "5. Личная статистика по команде /pwme",
       "",
       "Важно, розыгрыш проходит только раз в день, повторная команда выведет результат игры.",
       "",

@@ -41,12 +41,12 @@ test("a maintenance-mode migration does not call the database", async () => {
 
 test("the command menu is the six russian commands", () => {
   assert.deepEqual(commandMenu, [
-    { command: "pidor", description: "Запустить розыгрыш" },
-    { command: "pidoreg", description: "Зарегистрироваться" },
-    { command: "pidorstats", description: "Топ за текущий год" },
-    { command: "pidorall", description: "Топ за всё время" },
-    { command: "pidorme", description: "Личная статистика" },
-    { command: "pidorules", description: "Правила игры" },
+    { command: "pw", description: "Запустить розыгрыш" },
+    { command: "pwreg", description: "Зарегистрироваться" },
+    { command: "pwstats", description: "Топ за текущий год" },
+    { command: "pwall", description: "Топ за всё время" },
+    { command: "pwme", description: "Личная статистика" },
+    { command: "pwrules", description: "Правила игры" },
   ]);
 });
 
@@ -103,7 +103,7 @@ function commandUpdate(id: number, text: string) {
 test("maintenance answers a command the bot does not handle", async () => {
   const { bot, sent } = maintenanceBot();
   await bot.handleUpdate(commandUpdate(1, "/slap"));
-  await bot.handleUpdate(commandUpdate(2, "/pidor"));
+  await bot.handleUpdate(commandUpdate(2, "/pw"));
   await bot.handleUpdate(commandUpdate(3, "/slap@someone_else_bot"));
   await bot.handleUpdate(commandUpdate(4, "/slap@pickwinner_bot"));
   assert.equal(sent.length, 3);

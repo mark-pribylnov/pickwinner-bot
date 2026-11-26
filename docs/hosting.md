@@ -164,7 +164,7 @@ Stop `npm run dev` before this revision finishes. Telegram delivers updates to o
 
 The new revision calls Telegram `setWebhook`. The registered path is `<WEBHOOK_URL>/telegram`. The secret header is required. A request with the wrong secret gets `401`.
 
-Send `/pidoreg` in the group. The bot answers `Вы в игре.` (or `Вы уже в игре.` if you are registered). The first command after a quiet stretch can take about a second, because Cloud Run and Neon both wake up.
+Send `/pwreg` in the group. The bot answers `Вы в игре.` (or `Эй, ты уже в игре!` if you are registered). The first command after a quiet stretch can take about a second, because Cloud Run and Neon both wake up.
 
 ## Keep it working
 
@@ -182,11 +182,11 @@ The token and both Neon strings live in local `.env` and in the Cloud Run variab
 
 Deleting the Cloud Run service produces a new `https://…run.app` address. Set `WEBHOOK_URL` to the new address and deploy again.
 
-`npm run dev` long-polls, and starting it deletes the Telegram webhook. It also runs with `MAINTENANCE=1`, so while it runs every command gets the maintenance line, and the hosted bot receives nothing. Stopping it does not bring the webhook back. The hosted bot receives commands again only when a Cloud Run revision registers the webhook: a new revision starts, with `WEBHOOK_URL` set, and calls `setWebhook`. After local work, push to `main` or deploy a new revision from the **Revisions** page, then send `/pidoreg` in the group and check for the reply.
+`npm run dev` long-polls, and starting it deletes the Telegram webhook. It also runs with `MAINTENANCE=1`, so while it runs every command gets the maintenance line, and the hosted bot receives nothing. Stopping it does not bring the webhook back. The hosted bot receives commands again only when a Cloud Run revision registers the webhook: a new revision starts, with `WEBHOOK_URL` set, and calls `setWebhook`. After local work, push to `main` or deploy a new revision from the **Revisions** page, then send `/pwreg` in the group and check for the reply.
 
 Telegram will not deliver to the webhook and to a poll at the same time. Use the Cloud Run bot for the group. Run the local process only when you mean to work on the code.
 
-One draw per group per Moscow day (UTC+3). The day rolls at midnight Moscow, and `/pidorules` says so. The first `/pidor` of the day runs the draw. A later `/pidor` the same day repeats the winner. A person who leaves and comes back keeps their score and sends `/pidoreg` again.
+One draw per group per Moscow day (UTC+3). The day rolls at midnight Moscow, and `/pwrules` says so. The first `/pw` of the day runs the draw. A later `/pw` the same day repeats the winner. A person who leaves and comes back keeps their score and sends `/pwreg` again.
 
 If a command gets no reply, send it once more. Then open **Logs** on the Cloud Run service. The process logs the error and does not send it to the chat. `database connection failed` on startup means the revision could not reach Neon. `WEBHOOK_URL is not set` in the logs means the service is awake and Telegram has not been given the address yet.
 

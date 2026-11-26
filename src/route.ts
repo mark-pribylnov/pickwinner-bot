@@ -24,13 +24,13 @@ export function isGroupChat(chatType: string | undefined): boolean {
 export async function route(event: RouteEvent, deps: RouteDeps): Promise<Reply | null> {
   if (event.kind === "command") {
     if (event.command === "start" || event.command === "help") return textReply(ru.help);
-    if (event.command === "pidorules") return textReply(ru.rules);
+    if (event.command === "pwrules") return textReply(ru.rules);
     if (!isGroupChat(event.chatType)) return textReply(ru.addToGroup);
-    if (event.command === "pidoreg") return deps.register(event.actor);
-    if (event.command === "pidor") return deps.play(event.actor);
-    if (event.command === "pidorstats") return deps.yearStats(event.actor);
-    if (event.command === "pidorall") return deps.allTimeStats(event.actor);
-    if (event.command === "pidorme") return deps.me(event.actor);
+    if (event.command === "pwreg") return deps.register(event.actor);
+    if (event.command === "pw") return deps.play(event.actor);
+    if (event.command === "pwstats") return deps.yearStats(event.actor);
+    if (event.command === "pwall") return deps.allTimeStats(event.actor);
+    if (event.command === "pwme") return deps.me(event.actor);
     return null;
   }
   if (!isGroupChat(event.chatType)) return null;
