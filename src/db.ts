@@ -7,6 +7,21 @@ export type PlayerRow = {
   firstName: string;
   score: number;
   registered: boolean;
+  importedAllTime: number;
+  importedYear: number;
+  importedForYear: number | null;
+};
+
+export type HistoryImport = {
+  chatId: string;
+  year: number;
+  players: Array<{
+    userId: string;
+    username: string;
+    firstName: string;
+    allTime: number;
+    yearCount: number;
+  }>;
 };
 
 type Person = {
@@ -23,6 +38,9 @@ type PlayerRecord = {
   first_name: string;
   score: number;
   registered: boolean;
+  imported_all_time: number;
+  imported_year: number;
+  imported_for_year: number | null;
 };
 
 export function createPool(connectionString: string): pg.Pool {
@@ -46,6 +64,9 @@ export async function migrate(pool: pg.Pool): Promise<void> {
       first_name text NOT NULL,
       score integer NOT NULL DEFAULT 0,
       registered boolean NOT NULL DEFAULT false,
+      imported_all_time integer NOT NULL DEFAULT 0,
+      imported_year integer NOT NULL DEFAULT 0,
+      imported_for_year integer,
       PRIMARY KEY (chat_id, user_id)
     )
   `);
@@ -57,6 +78,9 @@ export async function migrate(pool: pg.Pool): Promise<void> {
       PRIMARY KEY (chat_id, utc_date)
     )
   `);
+  await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS imported_all_time integer NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS imported_year integer NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS imported_for_year integer`);
 }
 
 export async function registerPlayer(
@@ -114,7 +138,8 @@ export async function setRegistered(
 
 export async function listPlayers(pool: pg.Pool, chatId: string): Promise<PlayerRow[]> {
   const result = await pool.query<PlayerRecord>(
-    `SELECT chat_id, user_id, username, first_name, score, registered
+    `SELECT chat_id, user_id, username, first_name, score, registered,
+            imported_all_time, imported_year, imported_for_year
      FROM players
      WHERE chat_id = $1`,
     [chatId],
@@ -126,7 +151,52 @@ export async function listPlayers(pool: pg.Pool, chatId: string): Promise<Player
     firstName: row.first_name,
     score: row.score,
     registered: row.registered,
+    importedAllTime: row.imported_all_time,
+    importedYear: row.imported_year,
+    importedForYear: row.imported_for_year,
   }));
+}
+
+export async function importTotals(pool: pg.Pool, history: HistoryImport): Promise<void> {
+  for (const player of history.players) {
+    await pool.query(
+      `INSERT INTO players (
+         chat_id, user_id, username, first_name, score, registered,
+         imported_all_time, imported_year, imported_for_year
+       )
+       VALUES ($1, $2, $3, $4, 0, true, $5, $6, $7)
+       ON CONFLICT (chat_id, user_id) DO UPDATE
+       SET username = EXCLUDED.username,
+           first_name = EXCLUDED.first_name,
+           imported_all_time = EXCLUDED.imported_all_time,
+           imported_year = EXCLUDED.imported_year,
+           imported_for_year = EXCLUDED.imported_for_year`,
+      [
+        history.chatId,
+        player.userId,
+        player.username,
+        player.firstName,
+        player.allTime,
+        player.yearCount,
+        history.year,
+      ],
+    );
+  }
+}
+
+export async function countPicksByUser(
+  pool: pg.Pool,
+  chatId: string,
+  year: number,
+): Promise<Map<string, number>> {
+  const result = await pool.query<{ user_id: string; picks: number }>(
+    `SELECT user_id, COUNT(*)::int AS picks
+     FROM picks
+     WHERE chat_id = $1 AND utc_date LIKE $2
+     GROUP BY user_id`,
+    [chatId, `${year}-%`],
+  );
+  return new Map(result.rows.map((row) => [row.user_id, Number(row.picks)]));
 }
 
 export async function getPick(
@@ -152,7 +222,13 @@ export async function migrateChat(pool: pg.Pool, fromChatId: string, toChatId: s
        SET score = GREATEST(destination.score, source.score),
            registered = destination.registered OR source.registered,
            username = CASE WHEN destination.username <> '' THEN destination.username ELSE source.username END,
-           first_name = CASE WHEN destination.first_name <> '' THEN destination.first_name ELSE source.first_name END
+           first_name = CASE WHEN destination.first_name <> '' THEN destination.first_name ELSE source.first_name END,
+           imported_all_time = GREATEST(destination.imported_all_time, source.imported_all_time),
+           imported_year = CASE
+             WHEN destination.imported_for_year IS NOT NULL THEN destination.imported_year
+             ELSE source.imported_year
+           END,
+           imported_for_year = COALESCE(destination.imported_for_year, source.imported_for_year)
        FROM players AS source
        WHERE destination.chat_id = $2
          AND source.chat_id = $1

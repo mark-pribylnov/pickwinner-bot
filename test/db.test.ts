@@ -4,8 +4,10 @@ import test from "node:test";
 import type { Pool } from "pg";
 import {
   closePool,
+  countPicksByUser,
   createPool,
   getPick,
+  importTotals,
   listPlayers,
   migrate,
   migrateChat,
@@ -49,6 +51,9 @@ test("register creates a player at score 0", async () => {
     firstName: "Alex",
     score: 0,
     registered: true,
+    importedAllTime: 0,
+    importedYear: 0,
+    importedForYear: null,
   });
 });
 
@@ -153,4 +158,44 @@ test("groups do not share picks or scores", async () => {
   assert.equal(await getPick(pool, second, "2026-11-24"), null);
   assert.equal((await listPlayers(pool, second))[0]?.score, 0);
   assert.equal((await listPlayers(pool, first))[0]?.score, 1);
+});
+
+test("import writes totals once and does not reset score", async () => {
+  const chatId = randomUUID();
+  await registerPlayer(pool, { chatId, userId: "7", username: "old", firstName: "Old", });
+  await pool.query(
+    "UPDATE players SET score = 4, registered = false WHERE chat_id = $1 AND user_id = '7'",
+    [chatId],
+  );
+  const history = {
+    chatId,
+    year: 2026,
+    players: [
+      { userId: "7", username: "mark_pribylnov", firstName: "Mark", allTime: 146, yearCount: 36 },
+      { userId: "8", username: "davidovich_sales", firstName: "Vlad", allTime: 161, yearCount: 35 },
+    ],
+  };
+  await importTotals(pool, history);
+  await importTotals(pool, history);
+  const players = new Map((await listPlayers(pool, chatId)).map((player) => [player.userId, player]));
+  assert.equal(players.get("7")?.score, 4);
+  assert.equal(players.get("7")?.registered, false);
+  assert.equal(players.get("7")?.importedAllTime, 146);
+  assert.equal(players.get("7")?.importedYear, 36);
+  assert.equal(players.get("7")?.importedForYear, 2026);
+  assert.equal(players.get("7")?.username, "mark_pribylnov");
+  assert.equal(players.get("8")?.score, 0);
+  assert.equal(players.get("8")?.registered, true);
+  assert.equal(players.get("8")?.importedAllTime, 161);
+});
+
+test("pick counts group by user for one year prefix", async () => {
+  const chatId = randomUUID();
+  await registerPlayer(pool, { chatId, userId: "1", username: "a", firstName: "A" });
+  await registerPlayer(pool, { chatId, userId: "2", username: "b", firstName: "B" });
+  await tryRecordPick(pool, chatId, "2026-11-24", "1");
+  await tryRecordPick(pool, chatId, "2027-01-02", "2");
+  const year = await countPicksByUser(pool, chatId, 2026);
+  assert.equal(year.get("1"), 1);
+  assert.equal(year.get("2"), undefined);
 });
