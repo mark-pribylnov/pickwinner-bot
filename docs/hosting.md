@@ -203,6 +203,24 @@ Deleting the Cloud Run service produces a new `https://…run.app` address. Set 
 
 Telegram will not deliver to the webhook and to a poll at the same time. Use the Cloud Run bot for the group. Run the local process only when you mean to work on the code.
 
+## Many groups
+
+Any group that adds the bot gets its own game. Players, the daily winner, and scores are stored under that group's Telegram chat id. Two groups do not share them. The same person in two groups has two scores. A new group starts at zero. The Sublime totals in `history.json` apply only to the chat id in that file.
+
+Two `/pw` commands at the same moment in one group still produce one winner. The database allows one winner row per group per Moscow day.
+
+These are the limits if many groups play at once:
+
+- There is one bot token for every group. Telegram allows about one message per second in a single chat, and about 30 messages per second across all chats. One draw sends four messages, two seconds apart, so one group is inside that limit. Many groups drawing in the same second can receive HTTP 429 from Telegram. The bot logs that error and does not retry. The winner is already saved, so the skit can stop after the first lines. The next `/pw` in that group sends the one-line result.
+- The pauses in the skit happen inside the webhook request. The handler waits up to 50 seconds. The Cloud Run request timeout in this setup is 60 seconds. Before the draw, `/pw` asks Telegram about each registered person, one at a time. A group with a very large roster can spend that whole window on those checks. The chat then gets no reply, or only part of the skit. If the winner was saved, the next `/pw` sends the result line.
+- Cloud Run is capped at 2 instances and drops to zero when idle. The first command after a quiet stretch waits for a cold start, and Neon may be waking up too. There is no queue in the bot. When both instances are busy, further commands wait or Cloud Run rejects them. Those chats get no reply. The error is only in the Cloud Run logs.
+- Each instance opens one Postgres pool, and that pool's default maximum is 10 connections. Two instances are about 20 connections. Neon refuses connections past the project's limit. A refused command is logged and not sent to the chat.
+- `npm run dev` is maintenance mode for the whole bot. Every group gets the maintenance line, not only the group you are testing.
+- There is no list of allowed groups. Any group that can add the bot can play, and it uses the same Cloud Run service and the same Neon database.
+
+`/pwstats` and `/pwall` are a top 10, so a huge roster does not make the stats message too long for Telegram. The slow command is `/pw`, because of the membership checks.
+
+
 One draw per group per Moscow day (UTC+3). The day rolls at midnight Moscow, and `/pwrules` says so. The first `/pw` of the day runs the draw. A later `/pw` the same day repeats the winner. A person who leaves and comes back keeps their score and sends `/pwreg` again.
 
 If a command gets no reply, send it once more. Then open **Logs** on the Cloud Run service. The process logs the error and does not send it to the chat. `database connection failed` on startup means the revision could not reach Neon. `WEBHOOK_URL is not set` in the logs means the service is awake and Telegram has not been given the address yet.

@@ -28,6 +28,7 @@ A spec in `docs/superpowers/specs/` is a plan. `2026-11-24-pickwinner-design.md`
 - A key-value store, a notebook, or game releases.
 - A second bot token.
 - Access to every group message. BotFather privacy stays **Enable**. The member list must not say **имеет доступ к сообщениям**. The bot is not made a group admin to bypass that.
+- An allowlist of groups. Every group that adds the bot plays, with its own roster and scores. What gets tight under a rush of groups is in `docs/hosting.md` under **Many groups**: one token, two Cloud Run instances, the skit holding the webhook request, and Neon's connection limit.
 
 ## Planned
 
